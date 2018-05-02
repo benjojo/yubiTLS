@@ -1,12 +1,10 @@
 package main
 
 import (
-	"crypto"
 	"crypto/tls"
 	"encoding/pem"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -20,6 +18,7 @@ func main() {
 	csrgen := flag.Bool("signcsr", false, "set to try to poop out a CSR")
 	selectedkeyid := flag.String("keyid", "", "the Key ID in the agent to use")
 	certpath := flag.String("crtpath", "", "the ssl certificate path")
+	cacertpath := flag.String("cacrtpath", "", "the ssl CA certificate path")
 	flag.Parse()
 
 	options := []string{
@@ -61,6 +60,12 @@ func main() {
 		log.Fatalf("Unable to read cert %s", err.Error())
 	}
 
+	cacertbytes, err := ioutil.ReadFile(*cacertpath)
+
+	if err != nil {
+		log.Fatalf("Unable to read ca cert %s", err.Error())
+	}
+
 	tlsConfig := &tls.Config{
 		// Causes servers to use Go's default ciphersuite preferences,
 		// which are tuned to avoid attacks. Does nothing on clients.
@@ -82,9 +87,6 @@ func main() {
 	}
 
 	tlsConfig.Certificates = make([]tls.Certificate, 1)
-	// config.Certificates[0] = tls.Certificate{}
-
-	// tlsConfig.Certificates[0], err = tls.X509KeyPair(certbytes, []byte(dummykey))
 	var cert tls.Certificate
 	var skippedBlockTypes []string
 
@@ -96,6 +98,15 @@ func main() {
 	} else {
 		skippedBlockTypes = append(skippedBlockTypes, certDERBlock.Type)
 	}
+
+	certDERBlock, _ = pem.Decode(cacertbytes)
+
+	if certDERBlock.Type == "CERTIFICATE" {
+		cert.Certificate = append(cert.Certificate, certDERBlock.Bytes)
+	} else {
+		skippedBlockTypes = append(skippedBlockTypes, certDERBlock.Type)
+	}
+
 	cert.PrivateKey = key
 
 	tlsConfig.Certificates[0] = cert
@@ -106,12 +117,6 @@ func main() {
 		panic(err)
 	}
 
-	// mildHack := YubiToTLS{
-	// 	k: key,
-	// }
-
-	log.Printf("%+v", tlsConfig)
-
 	srv := &http.Server{
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
@@ -121,22 +126,15 @@ func main() {
 		Addr:         "[::]:8443",
 	}
 
-	log.Printf("IN.")
+	http.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
+		rw.Write(
+			[]byte("Secure hello from a YubiKey or GPG Smartcard!"))
+	})
+
+	log.Printf("Listening")
 	log.Println(srv.ListenAndServeTLS("", ""))
 
 	conn.Close()
-}
-
-type YubiToTLS struct {
-	k agent.Key
-}
-
-func (y *YubiToTLS) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (signature []byte, err error) {
-	return y.k.Sign(rand, digest, opts)
-}
-
-func (y *YubiToTLS) Public() crypto.PublicKey {
-	return y.k.Public()
 }
 
 func printKeysAndFail(keys []agent.Key) {
