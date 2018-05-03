@@ -8,8 +8,7 @@ source.
 
 This was made for a post on my blog:
 
-___
-
+https://blog.benjojo.co.uk/post/tls-https-server-from-a-yubikey
 
 You will need a functioning setup for Yubikey + GPG.
 
