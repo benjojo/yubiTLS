@@ -16,7 +16,6 @@ You will need a functioning setup for Yubikey + GPG.
 Program options:
 
 ```
-$ ./yubiTLS -h
 Usage of ./yubiTLS:
   -cacrtpath string
     	the ssl CA certificate path
@@ -27,5 +26,5 @@ Usage of ./yubiTLS:
   -keyid string
     	the Key ID in the agent to use
   -signcsr
-    	set to try to poop out a CSR
+    	set to try to output a CSR
 ```

@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	csrgen := flag.Bool("signcsr", false, "set to try to poop out a CSR")
+	csrgen := flag.Bool("signcsr", false, "set to try to output a CSR")
 	selectedkeyid := flag.String("keyid", "", "the Key ID in the agent to use")
 	certpath := flag.String("crtpath", "", "the ssl certificate path")
 	cacertpath := flag.String("cacrtpath", "", "the ssl CA certificate path")
